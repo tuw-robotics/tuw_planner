@@ -1,0 +1,8 @@
+<library path="tuw_planner_straight_plugin">
+	<class name="tuw_planner_straight/StraightLine" type="tuw_planner_straight::StraightLine" base_class_type="nav2_core::GlobalPlanner">
+	  <description>This is an example plugin which produces straight path.</description>
+	</class>
+	<class name="tuw_planner_straight/GraphPlanner" type="tuw_planner_straight::GraphPlanner" base_class_type="nav2_core::GlobalPlanner">
+	  <description>This planner planes path based on a predifined graph.</description>
+	</class>
+</library>
