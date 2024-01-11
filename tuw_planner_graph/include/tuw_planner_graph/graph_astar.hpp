@@ -13,6 +13,7 @@
 #include "nav2_util/robot_utils.hpp"
 #include "nav2_util/lifecycle_node.hpp"
 #include "nav2_costmap_2d/costmap_2d_ros.hpp"
+#include "tuw_graph/ros_bridge.hpp"
 
 namespace tuw_planner_graph
 {
@@ -44,6 +45,16 @@ public:
     const geometry_msgs::msg::PoseStamped & goal) override;
 
 private:
+
+  // callback on graph msg
+  void callback_graph(const tuw_graph_msgs::msg::Graph::SharedPtr msg);
+
+  // Subscription on graph msg
+  rclcpp::Subscription<tuw_graph_msgs::msg::Graph>::SharedPtr sub_graph_;
+
+  // Graph
+  tuw_graph::GraphPtr graph_;
+
   // TF buffer
   std::shared_ptr<tf2_ros::Buffer> tf_;
 

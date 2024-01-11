@@ -1,10 +1,12 @@
 #include <cmath>
 #include <string>
 #include <memory>
+#include <tuw_graph_msgs/msg/graph.hpp>
 #include "nav2_util/node_utils.hpp"
 
 #include "tuw_planner_graph/graph_astar.hpp"
 
+using std::placeholders::_1;
 namespace tuw_planner_graph
 {
 
@@ -29,21 +31,25 @@ void GraphAStar::configure(
 void GraphAStar::cleanup()
 {
   RCLCPP_INFO(
-    node_->get_logger(), "CleaningUp plugin %s of type NavfnPlanner",
+    node_->get_logger(), "CleaningUp plugin %s of type NavfnAStarGraphPlanner",
     name_.c_str());
 }
 
 void GraphAStar::activate()
 {
+
+  sub_graph_ = node_->create_subscription<tuw_graph_msgs::msg::Graph>(
+    "/graph", 10, std::bind(&GraphAStar::callback_graph, this, _1));
+
   RCLCPP_INFO(
-    node_->get_logger(), "Activating plugin %s of type NavfnPlanner",
+    node_->get_logger(), "Activating plugin %s of type NavfnAStarGraphPlanner",
     name_.c_str());
 }
 
 void GraphAStar::deactivate()
 {
   RCLCPP_INFO(
-    node_->get_logger(), "Deactivating plugin %s of type NavfnPlanner",
+    node_->get_logger(), "Deactivating plugin %s of type NavfnAStarGraphPlanner",
     name_.c_str());
 }
 
@@ -99,6 +105,13 @@ nav_msgs::msg::Path GraphAStar::createPlan(
   global_path.poses.push_back(goal_pose);
 
   return global_path;
+}
+
+void GraphAStar::callback_graph(const tuw_graph_msgs::msg::Graph::SharedPtr msg){
+  graph_ = std::make_shared<tuw_graph::Graph>();
+  tuw_graph::from_msg(*msg, *graph_);
+  RCLCPP_INFO(
+    node_->get_logger(), "Graph received %zu edges %zu nodes", graph_->edges().size(), graph_->nodes().size());
 }
 
 }  // namespace tuw_planner_graph
