@@ -3,7 +3,7 @@ planner_server:
     plugins: ["GridBased"]
     use_sim_time: True
     GridBased:
-      plugin: "tuw_nav2_planner/GraphPlanner"
+      plugin: "tuw_planner_graph/GraphAStar"
       interpolation_resolution: 0.1
 
 local_costmap:
