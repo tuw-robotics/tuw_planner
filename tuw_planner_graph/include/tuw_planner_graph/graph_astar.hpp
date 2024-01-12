@@ -46,6 +46,16 @@ public:
 
 private:
 
+  nav_msgs::msg::Path& plan_straight_line(
+  const geometry_msgs::msg::PoseStamped & start,
+  const geometry_msgs::msg::PoseStamped & goal,
+  nav_msgs::msg::Path& global_path);
+
+  nav_msgs::msg::Path& plan_graph_astar(
+  const geometry_msgs::msg::PoseStamped & start,
+  const geometry_msgs::msg::PoseStamped & goal,
+  nav_msgs::msg::Path& global_path);
+
   // callback on graph msg
   void callback_graph(const tuw_graph_msgs::msg::Graph::SharedPtr msg);
 

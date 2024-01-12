@@ -2,6 +2,7 @@
 #include <string>
 #include <memory>
 #include <tuw_graph_msgs/msg/graph.hpp>
+#include <tuw_graph/search_astar.hpp>
 #include "nav2_util/node_utils.hpp"
 
 #include "tuw_planner_graph/graph_astar.hpp"
@@ -53,11 +54,10 @@ void GraphAStar::deactivate()
     name_.c_str());
 }
 
-nav_msgs::msg::Path GraphAStar::createPlan(
+nav_msgs::msg::Path &GraphAStar::plan_straight_line(
   const geometry_msgs::msg::PoseStamped & start,
-  const geometry_msgs::msg::PoseStamped & goal)
-{
-  nav_msgs::msg::Path global_path;
+  const geometry_msgs::msg::PoseStamped & goal,
+  nav_msgs::msg::Path& global_path){
 
   // Checking if the goal and start state is in the global frame
   if (start.header.frame_id != global_frame_) {
@@ -103,6 +103,68 @@ nav_msgs::msg::Path GraphAStar::createPlan(
   goal_pose.header.stamp = node_->now();
   goal_pose.header.frame_id = global_frame_;
   global_path.poses.push_back(goal_pose);
+  return global_path;
+}
+
+nav_msgs::msg::Path &GraphAStar::plan_graph_astar(
+  const geometry_msgs::msg::PoseStamped & start,
+  const geometry_msgs::msg::PoseStamped & goal,
+  nav_msgs::msg::Path& global_path){
+
+
+  tuw_graph::Node* node_start = graph_->closest_node(Eigen::Vector3d(start.pose.position.x, start.pose.position.y, start.pose.position.z));  
+  RCLCPP_INFO(
+    node_->get_logger(), "node_start %3zu, <%4.3f, %4.3f, %4.3f> ", node_start->id, node_start->pose.translation().x(), node_start->pose.translation().y(), node_start->pose.translation().z());
+  
+  tuw_graph::Node* node_goal  = graph_->closest_node(Eigen::Vector3d( goal.pose.position.x,  goal.pose.position.y,  goal.pose.position.z));
+  RCLCPP_INFO(
+    node_->get_logger(), "node_goal  %3zu, <%4.3f, %4.3f, %4.3f> ", node_goal->id, node_goal->pose.translation().x(), node_goal->pose.translation().y(), node_goal->pose.translation().z());
+ 
+  tuw_graph::SearchAStart astar(*graph_);
+  astar.reset();
+  std::vector<tuw_graph::Node*> path;
+  path = astar.start_processing(node_start, node_goal, false);
+
+
+  for (tuw_graph::Node* node: path) {
+    RCLCPP_INFO(
+      node_->get_logger(), "path  %3zu, <%4.3f, %4.3f, %4.3f> ", node->id, node->pose.translation().x(), node->pose.translation().y(), node->pose.translation().z());
+    geometry_msgs::msg::PoseStamped pose;
+    pose.pose.position.x = node->pose.translation().x();
+    pose.pose.position.y = node->pose.translation().y();
+    pose.pose.position.z = node->pose.translation().z();
+    pose.pose.orientation.x = 0.0;
+    pose.pose.orientation.y = 0.0;
+    pose.pose.orientation.z = 0.0;
+    pose.pose.orientation.w = 1.0;
+    pose.header.stamp = node_->now();
+    pose.header.frame_id = global_frame_;
+    global_path.poses.push_back(std::move(pose));
+  }
+
+  geometry_msgs::msg::PoseStamped goal_pose = goal;
+  goal_pose.header.stamp = node_->now();
+  goal_pose.header.frame_id = global_frame_;
+  global_path.poses.push_back(goal_pose);
+  return global_path;
+}
+nav_msgs::msg::Path GraphAStar::createPlan(
+  const geometry_msgs::msg::PoseStamped & start,
+  const geometry_msgs::msg::PoseStamped & goal)
+{
+  nav_msgs::msg::Path global_path;
+
+  RCLCPP_INFO(
+    node_->get_logger(), "start <%4.3f, %4.3f, %4.3f> ", start.pose.position.x, start.pose.position.y, start.pose.position.z);
+  RCLCPP_INFO(
+    node_->get_logger(), "goal  <%4.3f, %4.3f, %4.3f> ", goal.pose.position.x, goal.pose.position.y, goal.pose.position.z);
+
+  if(graph_){
+
+    plan_graph_astar(start, goal, global_path);
+  } else {
+    plan_straight_line(start, goal, global_path);
+  }
 
   return global_path;
 }
