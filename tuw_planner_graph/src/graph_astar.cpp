@@ -97,6 +97,9 @@ nav_msgs::msg::Path &GraphAStar::plan_straight_line(
     pose.header.stamp = node_->now();
     pose.header.frame_id = global_frame_;
     global_path.poses.push_back(pose);
+    RCLCPP_INFO(
+      node_->get_logger(), "path  <%4.3f, %4.3f, %4.3f> ", 
+      pose.pose.position.x, pose.pose.position.y, pose.pose.position.z);
   }
 
   geometry_msgs::msg::PoseStamped goal_pose = goal;
@@ -111,14 +114,32 @@ nav_msgs::msg::Path &GraphAStar::plan_graph_astar(
   const geometry_msgs::msg::PoseStamped & goal,
   nav_msgs::msg::Path& global_path){
 
+  Eigen::Vector3d start_map(start.pose.position.x, start.pose.position.y, start.pose.position.z);
+  Eigen::Vector3d goal_map(goal.pose.position.x,  goal.pose.position.y,  goal.pose.position.z);
+  Eigen::Transform<double, 3, Eigen::Affine> tf_map_2_graph = graph_->origin().inverse();
+  Eigen::Transform<double, 3, Eigen::Affine> tf_graph_2_map = graph_->origin();
 
-  tuw_graph::Node* node_start = graph_->closest_node(Eigen::Vector3d(start.pose.position.x, start.pose.position.y, start.pose.position.z));  
+
   RCLCPP_INFO(
-    node_->get_logger(), "node_start %3zu, <%4.3f, %4.3f, %4.3f> ", node_start->id, node_start->pose.translation().x(), node_start->pose.translation().y(), node_start->pose.translation().z());
+    node_->get_logger(), "graph_offset <%4.3f, %4.3f, %4.3f>",
+      graph_->origin().translation().x(),  graph_->origin().translation().y(),  graph_->origin().translation().z());
+
+  Eigen::Vector3d start_graph = tf_map_2_graph * start_map;
+  Eigen::Vector3d goal_graph = tf_map_2_graph * goal_map;
+
+  tuw_graph::Node* node_start = graph_->closest_node(start_graph);  
+  RCLCPP_INFO(
+    node_->get_logger(), "node_start %3zu, <%4.3f, %4.3f, %4.3f> is closest node to <%4.3f, %4.3f, %4.3f>", 
+    node_start->id, 
+    node_start->pose.translation().x(), node_start->pose.translation().y(), node_start->pose.translation().z(),
+    start_graph.x(), start_graph.y(), start_graph.z());
   
-  tuw_graph::Node* node_goal  = graph_->closest_node(Eigen::Vector3d( goal.pose.position.x,  goal.pose.position.y,  goal.pose.position.z));
+  tuw_graph::Node* node_goal  = graph_->closest_node(goal_graph);
   RCLCPP_INFO(
-    node_->get_logger(), "node_goal  %3zu, <%4.3f, %4.3f, %4.3f> ", node_goal->id, node_goal->pose.translation().x(), node_goal->pose.translation().y(), node_goal->pose.translation().z());
+    node_->get_logger(), "node_goal  %3zu, <%4.3f, %4.3f, %4.3f> is closest node to <%4.3f, %4.3f, %4.3f>", 
+    node_goal->id, 
+    node_goal->pose.translation().x(), node_goal->pose.translation().y(), node_goal->pose.translation().z(),
+    goal_graph.x(), goal_graph.y(), goal_graph.z());
  
   tuw_graph::SearchAStart astar(*graph_);
   astar.reset();
@@ -126,26 +147,32 @@ nav_msgs::msg::Path &GraphAStar::plan_graph_astar(
   path = astar.start_processing(node_start, node_goal, false);
 
 
+  std::reverse(path.begin(), path.end());
+  global_path.poses.clear();
+  global_path.header.stamp = node_->now();
+  global_path.header.frame_id = global_frame_;
   for (tuw_graph::Node* node: path) {
-    RCLCPP_INFO(
-      node_->get_logger(), "path  %3zu, <%4.3f, %4.3f, %4.3f> ", node->id, node->pose.translation().x(), node->pose.translation().y(), node->pose.translation().z());
+    Eigen::Vector3d node_map = tf_graph_2_map * node->pose.translation();
     geometry_msgs::msg::PoseStamped pose;
-    pose.pose.position.x = node->pose.translation().x();
-    pose.pose.position.y = node->pose.translation().y();
-    pose.pose.position.z = node->pose.translation().z();
+    pose.pose.position.x = node_map.x();
+    pose.pose.position.y = node_map.y();
+    pose.pose.position.z = node_map.z();
     pose.pose.orientation.x = 0.0;
     pose.pose.orientation.y = 0.0;
     pose.pose.orientation.z = 0.0;
     pose.pose.orientation.w = 1.0;
     pose.header.stamp = node_->now();
     pose.header.frame_id = global_frame_;
+    RCLCPP_INFO(
+      node_->get_logger(), "path  %3zu, <%4.3f, %4.3f, %4.3f> ", node->id, 
+      pose.pose.position.x, pose.pose.position.y, pose.pose.position.z);
     global_path.poses.push_back(std::move(pose));
   }
 
   geometry_msgs::msg::PoseStamped goal_pose = goal;
   goal_pose.header.stamp = node_->now();
   goal_pose.header.frame_id = global_frame_;
-  global_path.poses.push_back(goal_pose);
+  global_path.poses.push_back(std::move(goal_pose));
   return global_path;
 }
 nav_msgs::msg::Path GraphAStar::createPlan(
