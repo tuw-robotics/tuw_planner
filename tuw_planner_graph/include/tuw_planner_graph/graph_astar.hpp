@@ -63,7 +63,7 @@ private:
   rclcpp::Subscription<tuw_graph_msgs::msg::Graph>::SharedPtr sub_graph_;
 
   // Graph
-  tuw_graph::GraphPtr graph_;
+  tuw_graph_msgs::msg::Graph::SharedPtr msg_graph_;
 
   // TF buffer
   std::shared_ptr<tf2_ros::Buffer> tf_;

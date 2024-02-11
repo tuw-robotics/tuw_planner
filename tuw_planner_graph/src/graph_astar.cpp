@@ -114,8 +114,12 @@ nav_msgs::msg::Path &GraphAStar::plan_graph_astar(
   const geometry_msgs::msg::PoseStamped & goal,
   nav_msgs::msg::Path& global_path){
 
-  Eigen::Vector3d start_map(start.pose.position.x, start.pose.position.y, start.pose.position.z);
-  Eigen::Vector3d goal_map(goal.pose.position.x,  goal.pose.position.y,  goal.pose.position.z);
+  
+  tuw_graph::GraphPtr graph_ = std::make_shared<tuw_graph::Graph>();
+  tuw_graph::from_msg(*msg_graph_, *graph_);
+
+  Eigen::Vector3d start_map(start.pose.position.x, start.pose.position.y, 0);
+  Eigen::Vector3d goal_map(goal.pose.position.x,  goal.pose.position.y,  0);
   Eigen::Transform<double, 3, Eigen::Affine> tf_map_2_graph = graph_->origin().inverse();
   Eigen::Transform<double, 3, Eigen::Affine> tf_graph_2_map = graph_->origin();
 
@@ -141,32 +145,50 @@ nav_msgs::msg::Path &GraphAStar::plan_graph_astar(
     node_goal->pose.translation().x(), node_goal->pose.translation().y(), node_goal->pose.translation().z(),
     goal_graph.x(), goal_graph.y(), goal_graph.z());
  
+  
   tuw_graph::SearchAStart astar(*graph_);
   astar.reset();
   std::vector<tuw_graph::Node*> path;
   path = astar.start_processing(node_start, node_goal, false);
-
-
   std::reverse(path.begin(), path.end());
+
+  
+  Eigen::Vector3d first_node_map = tf_graph_2_map * path[1]->pose.translation();
+  int total_number_of_loop = (first_node_map - start_map).norm() /  interpolation_resolution_;
+  double x_increment = (first_node_map[0] - start_map[0]) / total_number_of_loop;
+  double y_increment = (first_node_map[1] - start_map[1]) / total_number_of_loop;
+
+
   global_path.poses.clear();
-  global_path.header.stamp = node_->now();
-  global_path.header.frame_id = global_frame_;
-  for (tuw_graph::Node* node: path) {
-    Eigen::Vector3d node_map = tf_graph_2_map * node->pose.translation();
-    geometry_msgs::msg::PoseStamped pose;
-    pose.pose.position.x = node_map.x();
-    pose.pose.position.y = node_map.y();
-    pose.pose.position.z = node_map.z();
+
+  geometry_msgs::msg::PoseStamped pose;
+  for (int i = 0; i < total_number_of_loop; ++i) {
+    pose.pose.position.x = start.pose.position.x + x_increment * i;
+    pose.pose.position.y = start.pose.position.y + y_increment * i;
+    pose.pose.position.z = 0.0;
     pose.pose.orientation.x = 0.0;
     pose.pose.orientation.y = 0.0;
     pose.pose.orientation.z = 0.0;
     pose.pose.orientation.w = 1.0;
     pose.header.stamp = node_->now();
     pose.header.frame_id = global_frame_;
+    global_path.poses.push_back(pose);
+    RCLCPP_INFO(
+      node_->get_logger(), "path  <%4.3f, %4.3f, %4.3f> ", 
+      pose.pose.position.x, pose.pose.position.y, pose.pose.position.z);
+  }
+
+  for(size_t i = 1; i < path.size(); i++)
+  {
+    tuw_graph::Node* node = path[i];
+    Eigen::Vector3d node_map = tf_graph_2_map * node->pose.translation();
+    pose.pose.position.x = node_map.x();
+    pose.pose.position.y = node_map.y();
+    pose.pose.position.z = 0.0;
     RCLCPP_INFO(
       node_->get_logger(), "path  %3zu, <%4.3f, %4.3f, %4.3f> ", node->id, 
       pose.pose.position.x, pose.pose.position.y, pose.pose.position.z);
-    global_path.poses.push_back(std::move(pose));
+    global_path.poses.push_back(pose);
   }
 
   geometry_msgs::msg::PoseStamped goal_pose = goal;
@@ -186,7 +208,7 @@ nav_msgs::msg::Path GraphAStar::createPlan(
   RCLCPP_INFO(
     node_->get_logger(), "goal  <%4.3f, %4.3f, %4.3f> ", goal.pose.position.x, goal.pose.position.y, goal.pose.position.z);
 
-  if(graph_){
+  if(msg_graph_){
 
     plan_graph_astar(start, goal, global_path);
   } else {
@@ -197,10 +219,10 @@ nav_msgs::msg::Path GraphAStar::createPlan(
 }
 
 void GraphAStar::callback_graph(const tuw_graph_msgs::msg::Graph::SharedPtr msg){
-  graph_ = std::make_shared<tuw_graph::Graph>();
-  tuw_graph::from_msg(*msg, *graph_);
+  msg_graph_ = std::make_shared<tuw_graph_msgs::msg::Graph>();
+  *msg_graph_ = *msg;
   RCLCPP_INFO(
-    node_->get_logger(), "Graph received %zu edges %zu nodes", graph_->edges().size(), graph_->nodes().size());
+    node_->get_logger(), "Graph received %zu edges %zu nodes", msg_graph_->edges.size(), msg_graph_->nodes.size());
 }
 
 }  // namespace tuw_planner_graph
