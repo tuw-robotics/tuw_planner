@@ -17,4 +17,5 @@ ros2 run nav2_planner planner_server --ros-args --params-file $WS/src/tuw_planne
 ### tmuxinator
 ```bash
 tmuxinator start -p ./ws02/src/tuw_planner/tuw_planner_graph/tmux/cave_stage_astar.yml
+tmuxinator start -p ./ws02/src/tuw_planner/tuw_planner_graph/tmux/straden_stage.yml
 ```
