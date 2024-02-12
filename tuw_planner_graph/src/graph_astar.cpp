@@ -114,9 +114,6 @@ nav_msgs::msg::Path &GraphAStar::plan_graph_astar(
   const geometry_msgs::msg::PoseStamped & goal,
   nav_msgs::msg::Path& global_path){
 
-  
-  tuw_graph::GraphPtr graph_ = std::make_shared<tuw_graph::Graph>();
-  tuw_graph::from_msg(*msg_graph_, *graph_);
 
   Eigen::Vector3d start_map(start.pose.position.x, start.pose.position.y, 0);
   Eigen::Vector3d goal_map(goal.pose.position.x,  goal.pose.position.y,  0);
@@ -160,6 +157,8 @@ nav_msgs::msg::Path &GraphAStar::plan_graph_astar(
 
 
   global_path.poses.clear();
+  global_path.header.stamp = node_->now();
+  global_path.header.frame_id = global_frame_;
 
   geometry_msgs::msg::PoseStamped pose;
   for (int i = 0; i < total_number_of_loop; ++i) {
@@ -221,6 +220,8 @@ nav_msgs::msg::Path GraphAStar::createPlan(
 void GraphAStar::callback_graph(const tuw_graph_msgs::msg::Graph::SharedPtr msg){
   msg_graph_ = std::make_shared<tuw_graph_msgs::msg::Graph>();
   *msg_graph_ = *msg;
+  graph_ = std::make_shared<tuw_graph::Graph>();
+  tuw_graph::from_msg(*msg_graph_, *graph_);
   RCLCPP_INFO(
     node_->get_logger(), "Graph received %zu edges %zu nodes", msg_graph_->edges.size(), msg_graph_->nodes.size());
 }

@@ -64,6 +64,7 @@ private:
 
   // Graph
   tuw_graph_msgs::msg::Graph::SharedPtr msg_graph_;
+  tuw_graph::GraphPtr graph_;
 
   // TF buffer
   std::shared_ptr<tf2_ros::Buffer> tf_;
