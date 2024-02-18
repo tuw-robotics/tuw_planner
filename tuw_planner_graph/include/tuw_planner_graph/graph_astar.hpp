@@ -7,6 +7,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/point.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
+#include "geometry_msgs/msg/pose_array.hpp"
 
 #include "nav2_core/global_planner.hpp"
 #include "nav_msgs/msg/path.hpp"
@@ -46,11 +47,6 @@ public:
 
 private:
 
-  nav_msgs::msg::Path& plan_straight_line(
-  const geometry_msgs::msg::PoseStamped & start,
-  const geometry_msgs::msg::PoseStamped & goal,
-  nav_msgs::msg::Path& global_path);
-
   nav_msgs::msg::Path& plan_graph_astar(
   const geometry_msgs::msg::PoseStamped & start,
   const geometry_msgs::msg::PoseStamped & goal,
@@ -61,6 +57,9 @@ private:
 
   // Subscription on graph msg
   rclcpp::Subscription<tuw_graph_msgs::msg::Graph>::SharedPtr sub_graph_;
+
+  // Publish for debugging
+  rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr pub_path_debug_;
 
   // Graph
   tuw_graph_msgs::msg::Graph::SharedPtr msg_graph_;
