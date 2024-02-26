@@ -104,8 +104,9 @@ namespace tuw_planner_graph
       int nr_of_interpolations = 0;
       double x_increment = 0;
       double y_increment = 0;
-      while(nr_of_interpolations == 0 && path.size() > 0){
-        path.erase(path.begin());  /// erase first node
+      while (nr_of_interpolations == 0 && path.size() > 0)
+      {
+        path.erase(path.begin()); /// erase first node
         Eigen::Vector3d first_node_map = tf_graph_2_map * (*path.begin())->pose.translation();
         nr_of_interpolations = (first_node_map - start_map).norm() / interpolation_resolution_;
         x_increment = (first_node_map[0] - start_map[0]) / nr_of_interpolations;
@@ -140,19 +141,22 @@ namespace tuw_planner_graph
         pose.pose.position.z = 0.0;
         global_path.poses.push_back(pose);
       }
-    } else {
+    }
+    else
+    {
       RCLCPP_WARN(node_->get_logger(), "Path empty!!!.");
     }
     geometry_msgs::msg::PoseStamped goal_pose = goal;
     goal_pose.header.stamp = node_->now();
     goal_pose.header.frame_id = global_frame_;
     global_path.poses.push_back(std::move(goal_pose));
-    for(size_t i = 0; i < global_path.poses.size()-1; i++){
+    for (size_t i = 0; i < global_path.poses.size() - 1; i++)
+    {
       geometry_msgs::msg::Point p0 = global_path.poses[i].pose.position;
-      geometry_msgs::msg::Point p1 = global_path.poses[i+1].pose.position;
+      geometry_msgs::msg::Point p1 = global_path.poses[i + 1].pose.position;
       double yaw_angle = atan2(p1.y - p0.y, p1.x - p0.x);
       tf2::Quaternion quaternion;
-      quaternion.setRPY(0, 0, yaw_angle);  // Roll and pitch are set to zero
+      quaternion.setRPY(0, 0, yaw_angle); // Roll and pitch are set to zero
       tf2::convert(quaternion, global_path.poses[i].pose.orientation);
     }
 
@@ -187,8 +191,12 @@ namespace tuw_planner_graph
   {
     msg_graph_ = std::make_shared<tuw_graph_msgs::msg::Graph>();
     *msg_graph_ = *msg;
-    graph_ = std::make_shared<tuw_graph::Graph>();
-    tuw_graph::from_msg(*msg_graph_, *graph_);
+
+    std::shared_ptr<tuw_graph::Graph> graph = std::make_shared<tuw_graph::Graph>();
+    tuw_graph::from_msg(*msg_graph_, *graph);
+
+    graph_ = graph;
+
     RCLCPP_INFO(
         node_->get_logger(), "Graph received %zu edges %zu nodes", msg_graph_->edges.size(), msg_graph_->nodes.size());
   }
