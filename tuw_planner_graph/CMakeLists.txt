@@ -28,6 +28,9 @@ find_package(nav2_costmap_2d REQUIRED)
 find_package(nav2_core REQUIRED)
 find_package(pluginlib REQUIRED)
 
+find_package(ament_cmake_python REQUIRED)
+find_package(rclpy REQUIRED)
+
 include_directories(
   include
 )
@@ -95,4 +98,14 @@ endif()
 ament_export_include_directories(include)
 ament_export_libraries(${library_name})
 ament_export_dependencies(${dependencies})
+
+# Python
+# ament_python_install_package(${PROJECT_NAME})
+
+# Install Python executables
+install(PROGRAMS
+  scripts/nav2_demo.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 ament_package()
