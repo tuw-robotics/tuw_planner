@@ -19,67 +19,66 @@
 namespace tuw_planner_graph
 {
 
-class GraphAStar : public nav2_core::GlobalPlanner
-{
-public:
-  GraphAStar() = default;
-  ~GraphAStar() = default;
+  class GraphAStar : public nav2_core::GlobalPlanner
+  {
+  public:
+    GraphAStar() = default;
+    ~GraphAStar() = default;
 
-  // plugin configure
-  void configure(
-    const rclcpp_lifecycle::LifecycleNode::WeakPtr & parent,
-    std::string name, std::shared_ptr<tf2_ros::Buffer> tf,
-    std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros) override;
+    // plugin configure
+    void configure(
+        const rclcpp_lifecycle::LifecycleNode::WeakPtr &parent,
+        std::string name, std::shared_ptr<tf2_ros::Buffer> tf,
+        std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros) override;
 
-  // plugin cleanup
-  void cleanup() override;
+    // plugin cleanup
+    void cleanup() override;
 
-  // plugin activate
-  void activate() override;
+    // plugin activate
+    void activate() override;
 
-  // plugin deactivate
-  void deactivate() override;
+    // plugin deactivate
+    void deactivate() override;
 
-  // This method creates path for given start and goal pose.
-  nav_msgs::msg::Path createPlan(
-    const geometry_msgs::msg::PoseStamped & start,
-    const geometry_msgs::msg::PoseStamped & goal) override;
+    // This method creates path for given start and goal pose.
+    nav_msgs::msg::Path createPlan(
+        const geometry_msgs::msg::PoseStamped &start,
+        const geometry_msgs::msg::PoseStamped &goal) override;
 
-private:
+  private:
+    nav_msgs::msg::Path &plan_graph_astar(
+        const geometry_msgs::msg::PoseStamped &start,
+        const geometry_msgs::msg::PoseStamped &goal,
+        nav_msgs::msg::Path &global_path);
 
-  nav_msgs::msg::Path& plan_graph_astar(
-  const geometry_msgs::msg::PoseStamped & start,
-  const geometry_msgs::msg::PoseStamped & goal,
-  nav_msgs::msg::Path& global_path);
+    // callback on graph msg
+    void callback_graph(const tuw_graph_msgs::msg::Graph::SharedPtr msg);
 
-  // callback on graph msg
-  void callback_graph(const tuw_graph_msgs::msg::Graph::SharedPtr msg);
+    // Subscription on graph msg
+    rclcpp::Subscription<tuw_graph_msgs::msg::Graph>::SharedPtr sub_graph_;
 
-  // Subscription on graph msg
-  rclcpp::Subscription<tuw_graph_msgs::msg::Graph>::SharedPtr sub_graph_;
+    // Publish for debugging
+    rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr pub_path_debug_;
 
-  // Publish for debugging
-  rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr pub_path_debug_;
+    // Graph
+    tuw_graph_msgs::msg::Graph::SharedPtr msg_graph_;
+    tuw_graph::GraphPtr graph_;
 
-  // Graph
-  tuw_graph_msgs::msg::Graph::SharedPtr msg_graph_;
-  tuw_graph::GraphPtr graph_;
+    // TF buffer
+    std::shared_ptr<tf2_ros::Buffer> tf_;
 
-  // TF buffer
-  std::shared_ptr<tf2_ros::Buffer> tf_;
+    // node ptr
+    nav2_util::LifecycleNode::SharedPtr node_;
 
-  // node ptr
-  nav2_util::LifecycleNode::SharedPtr node_;
+    // Global Costmap
+    nav2_costmap_2d::Costmap2D *costmap_;
 
-  // Global Costmap
-  nav2_costmap_2d::Costmap2D * costmap_;
+    // The global frame of the costmap
+    std::string global_frame_, name_;
 
-  // The global frame of the costmap
-  std::string global_frame_, name_;
+    double interpolation_resolution_;
+  };
 
-  double interpolation_resolution_;
-};
+} // namespace tuw_planner_graph
 
-}  // namespace tuw_planner_graph
-
-#endif  // TUW_PLANNER_GRAPH__GRAPH_ASTAR_HPP_
+#endif // TUW_PLANNER_GRAPH__GRAPH_ASTAR_HPP_
