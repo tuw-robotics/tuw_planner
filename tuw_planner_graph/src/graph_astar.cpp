@@ -22,11 +22,6 @@ namespace tuw_planner_graph
     tf_ = tf;
     costmap_ = costmap_ros->getCostmap();
     global_frame_ = costmap_ros->getGlobalFrameID();
-
-    // Parameter initialization
-    nav2_util::declare_parameter_if_not_declared(
-        node_, name_ + ".interpolation_resolution", rclcpp::ParameterValue(0.1));
-    node_->get_parameter(name_ + ".interpolation_resolution", interpolation_resolution_);
   }
 
   void GraphAStar::cleanup()
@@ -101,18 +96,6 @@ namespace tuw_planner_graph
 
     if (!path.empty())
     {
-      int nr_of_interpolations = 0;
-      double x_increment = 0;
-      double y_increment = 0;
-      while (nr_of_interpolations == 0 && path.size() > 0)
-      {
-        path.erase(path.begin()); /// erase first node
-        Eigen::Vector3d first_node_map = tf_graph_2_map * (*path.begin())->pose.translation();
-        nr_of_interpolations = (first_node_map - start_map).norm() / interpolation_resolution_;
-        x_increment = (first_node_map[0] - start_map[0]) / nr_of_interpolations;
-        y_increment = (first_node_map[1] - start_map[1]) / nr_of_interpolations;
-      }
-
       global_path.poses.clear();
       global_path.header.stamp = node_->now();
       global_path.header.frame_id = global_frame_;
@@ -120,17 +103,33 @@ namespace tuw_planner_graph
       geometry_msgs::msg::PoseStamped pose;
       pose.header.stamp = node_->now();
       pose.header.frame_id = global_frame_;
-      for (int i = 1; i < nr_of_interpolations; ++i)
+
+      // Insert a pose shortly before the start pose
+      const double next_waypoint_distance = 0.0;
+      Eigen::Vector3d next_pose;
+
+      if (path.size() >= 2) {
+        tuw_graph::Node *next = path[1];
+        next_pose = tf_graph_2_map * next->pose.translation();
+      } else {
+        tuw_graph::Node *next = path[0];
+        next_pose = tf_graph_2_map * next->pose.translation();
+      }
+
+      double distance = (next_pose - start_map).norm();
+
+      if (distance > next_waypoint_distance)
       {
-        pose.pose.position.x = start.pose.position.x + x_increment * i;
-        pose.pose.position.y = start.pose.position.y + y_increment * i;
+        Eigen::Vector3d next_waypoint = start_map + next_waypoint_distance * (next_pose - start_map).normalized();
+        pose.pose.position.x = next_waypoint.x();
+        pose.pose.position.y = next_waypoint.y();
         pose.pose.position.z = 0.0;
         pose.pose.orientation.x = 0.0;
         pose.pose.orientation.y = 0.0;
         pose.pose.orientation.z = 0.0;
         pose.pose.orientation.w = 1.0;
         global_path.poses.push_back(pose);
-      }
+      }   
 
       for (size_t i = 1; i < path.size(); i++)
       {
