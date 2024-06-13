@@ -30,7 +30,7 @@ windows:
           #- ros2 launch tuw_nav2 localization_launch.py      use_sim_time:=true init_pose_yaml:=init_pose_straden.yaml vehilce:=pioneer3dx
         - graph publisher: 
           - printf '\033]2;%s\033\\' 'graph publisher'
-          - sleep 5; ros2 run tuw_graph_voronoi graph_voronoi_node --ros-args -p map_topic:=map -p threshold_ending:=1.5 -p loop_rate:=5
+          - sleep 5; ros2 run tuw_graph_voronoi graph_voronoi_node --ros-args -p map_topic:=map -p threshold_ending:=1.5 -p loop_rate:=5  -p loop_rate:=5 -p publish_path:=false
         - nav2-full: 
           - printf '\033]2;%s\033\\' 'nav2-full'
           - read -p "start nav2"; ros2 launch tuw_nav2 nav2_minimal_launch.py

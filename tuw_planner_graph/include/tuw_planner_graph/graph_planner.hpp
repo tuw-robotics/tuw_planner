@@ -19,11 +19,11 @@
 namespace tuw_planner_graph
 {
 
-  class GraphAStar : public nav2_core::GlobalPlanner
+  class GraphPlanner : public nav2_core::GlobalPlanner
   {
   public:
-    GraphAStar() = default;
-    ~GraphAStar() = default;
+    GraphPlanner() = default;
+    ~GraphPlanner() = default;
 
     // plugin configure
     void configure(

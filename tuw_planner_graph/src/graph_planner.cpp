@@ -6,13 +6,13 @@
 #include <tuw_graph/ros_bridge.hpp>
 #include "nav2_util/node_utils.hpp"
 
-#include "tuw_planner_graph/graph_astar.hpp"
+#include "tuw_planner_graph/graph_planner.hpp"
 
 using std::placeholders::_1;
 namespace tuw_planner_graph
 {
 
-  void GraphAStar::configure(
+  void GraphPlanner::configure(
       const rclcpp_lifecycle::LifecycleNode::WeakPtr &parent,
       std::string name, std::shared_ptr<tf2_ros::Buffer> tf,
       std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros)
@@ -24,18 +24,18 @@ namespace tuw_planner_graph
     global_frame_ = costmap_ros->getGlobalFrameID();
   }
 
-  void GraphAStar::cleanup()
+  void GraphPlanner::cleanup()
   {
     RCLCPP_INFO(
         node_->get_logger(), "CleaningUp plugin %s of type NavfnAStarGraphPlanner",
         name_.c_str());
   }
 
-  void GraphAStar::activate()
+  void GraphPlanner::activate()
   {
 
     sub_graph_ = node_->create_subscription<tuw_graph_msgs::msg::Graph>(
-        "/graph", 10, std::bind(&GraphAStar::callback_graph, this, _1));
+        "/graph", 10, std::bind(&GraphPlanner::callback_graph, this, _1));
 
     pub_path_debug_ = node_->create_publisher<geometry_msgs::msg::PoseArray>("path_debug", 10);
 
@@ -44,14 +44,14 @@ namespace tuw_planner_graph
         name_.c_str());
   }
 
-  void GraphAStar::deactivate()
+  void GraphPlanner::deactivate()
   {
     RCLCPP_INFO(
         node_->get_logger(), "Deactivating plugin %s of type NavfnAStarGraphPlanner",
         name_.c_str());
   }
 
-  nav_msgs::msg::Path &GraphAStar::plan_graph_astar(
+  nav_msgs::msg::Path &GraphPlanner::plan_graph_astar(
       const geometry_msgs::msg::PoseStamped &start,
       const geometry_msgs::msg::PoseStamped &goal,
       nav_msgs::msg::Path &global_path)
@@ -161,7 +161,7 @@ namespace tuw_planner_graph
 
     return global_path;
   }
-  nav_msgs::msg::Path GraphAStar::createPlan(
+  nav_msgs::msg::Path GraphPlanner::createPlan(
       const geometry_msgs::msg::PoseStamped &start,
       const geometry_msgs::msg::PoseStamped &goal)
   {
@@ -186,7 +186,7 @@ namespace tuw_planner_graph
     return global_path;
   }
 
-  void GraphAStar::callback_graph(const tuw_graph_msgs::msg::Graph::SharedPtr msg)
+  void GraphPlanner::callback_graph(const tuw_graph_msgs::msg::Graph::SharedPtr msg)
   {
     msg_graph_ = std::make_shared<tuw_graph_msgs::msg::Graph>();
     *msg_graph_ = *msg;
@@ -203,4 +203,4 @@ namespace tuw_planner_graph
 } // namespace tuw_planner_graph
 
 #include "pluginlib/class_list_macros.hpp"
-PLUGINLIB_EXPORT_CLASS(tuw_planner_graph::GraphAStar, nav2_core::GlobalPlanner)
+PLUGINLIB_EXPORT_CLASS(tuw_planner_graph::GraphPlanner, nav2_core::GlobalPlanner)
