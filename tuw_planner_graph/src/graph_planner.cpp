@@ -3,6 +3,7 @@
 #include <memory>
 #include <tuw_graph_msgs/msg/graph.hpp>
 #include <tuw_graph/search_astar.hpp>
+#include <tuw_graph/search_dijkstar.hpp>
 #include <tuw_graph/ros_bridge.hpp>
 #include "nav2_util/node_utils.hpp"
 
@@ -22,6 +23,13 @@ namespace tuw_planner_graph
     tf_ = tf;
     costmap_ = costmap_ros->getCostmap();
     global_frame_ = costmap_ros->getGlobalFrameID();
+
+    // Parameter initialization
+    std::string name_algorithm;
+    nav2_util::declare_parameter_if_not_declared(
+        node_, name_ + ".algorithm", rclcpp::ParameterValue("astar"));
+    node_->get_parameter(name_ + ".algorithm", name_algorithm);
+    alogrithm_ = tuw_graph::Search::name_to_algorithm(name_algorithm);
   }
 
   void GraphPlanner::cleanup()
@@ -37,7 +45,7 @@ namespace tuw_planner_graph
     sub_graph_ = node_->create_subscription<tuw_graph_msgs::msg::Graph>(
         "/graph", 10, std::bind(&GraphPlanner::callback_graph, this, _1));
 
-    pub_path_debug_ = node_->create_publisher<geometry_msgs::msg::PoseArray>("path_debug", 10);
+    pub_path_debug_ = node_->create_publisher<geometry_msgs::msg::PoseArray>("nodes_on_path", 10);
 
     RCLCPP_INFO(
         node_->get_logger(), "Activating plugin %s of type NavfnAStarGraphPlanner",
@@ -51,95 +59,90 @@ namespace tuw_planner_graph
         name_.c_str());
   }
 
-  nav_msgs::msg::Path &GraphPlanner::plan_graph_astar(
+  void GraphPlanner::convert_path(
+      const std::vector<tuw_graph::Node *> &graph_path,
+      nav_msgs::msg::Path &global_path)
+  {
+
+    global_path.poses.clear();
+    global_path.header.stamp = node_->now();
+    global_path.header.frame_id = global_frame_;
+
+    geometry_msgs::msg::PoseStamped pose;
+    pose.header.stamp = node_->now();
+    pose.header.frame_id = global_frame_;
+
+    for (size_t i = 0; i < graph_path.size(); i++)
+    {
+      tuw_graph::Node *node = graph_path[i];
+      Eigen::Vector3d node_map = tf_graph_2_map_ * node->pose.translation();
+      pose.pose.position.x = node_map.x();
+      pose.pose.position.y = node_map.y();
+      pose.pose.position.z = 0.0;
+      global_path.poses.push_back(pose);
+    }
+  }
+
+  void GraphPlanner::debug_publish_node_path(const std::vector<tuw_graph::Node *> node_path)
+  {
+    std::stringstream ss;
+    geometry_msgs::msg::PoseArray path_debug;
+    path_debug.header.stamp = node_->now();
+    path_debug.header.frame_id = global_frame_;
+    for (size_t i = 0; i < node_path.size(); i++)
+    {
+      path_debug.poses.push_back(tuw_graph::to_msg(tf_graph_2_map_ * node_path[i]->pose));
+      ss << node_path[i]->id << (i < node_path.size() - 1 ? " > " : "");
+    }
+    pub_path_debug_->publish(path_debug);
+    RCLCPP_INFO(node_->get_logger(), "nodes: %s", ss.str().c_str());
+  }
+
+  nav_msgs::msg::Path &GraphPlanner::start_graph_serach(
       const geometry_msgs::msg::PoseStamped &start,
       const geometry_msgs::msg::PoseStamped &goal,
       nav_msgs::msg::Path &global_path)
   {
 
-    Eigen::Vector3d start_map(start.pose.position.x, start.pose.position.y, 0);
-    Eigen::Vector3d goal_map(goal.pose.position.x, goal.pose.position.y, 0);
-    Eigen::Transform<double, 3, Eigen::Affine> tf_map_2_graph = graph_->origin().inverse();
-    Eigen::Transform<double, 3, Eigen::Affine> tf_graph_2_map = graph_->origin();
+    // tanslate start and goal into graph frame
+    Eigen::Vector3d graph_start = tf_map_2_graph_ * Eigen::Vector3d(start.pose.position.x, start.pose.position.y, 0);
+    Eigen::Vector3d graph_goal = tf_map_2_graph_ * Eigen::Vector3d(goal.pose.position.x, goal.pose.position.y, 0);
 
-    RCLCPP_INFO(
-        node_->get_logger(), "graph_offset <%4.3f, %4.3f, %4.3f>",
-        graph_->origin().translation().x(), graph_->origin().translation().y(), graph_->origin().translation().z());
+    // find the closest graph nodes
+    tuw_graph::Node *node_start = graph_->closest_node(graph_start);
+    tuw_graph::Node *node_goal = graph_->closest_node(graph_goal);
 
-    Eigen::Vector3d start_graph = tf_map_2_graph * start_map;
-    Eigen::Vector3d goal_graph = tf_map_2_graph * goal_map;
-
-    tuw_graph::Node *node_start = graph_->closest_node(start_graph);
-    tuw_graph::Node *node_goal = graph_->closest_node(goal_graph);
-
-    tuw_graph::SearchAStart astar(*graph_);
-    astar.reset();
-    std::vector<tuw_graph::Node *> path;
-    path = astar.start_processing(node_start, node_goal, false);
-    std::reverse(path.begin(), path.end());
-
-    if (true)
+    // init search algorithm
+    if (search_algorithm_ == NULL || (search_algorithm_->algorithm() != alogrithm_))
     {
-      /// Debug message with path
-      std::stringstream ss;
-      geometry_msgs::msg::PoseArray path_debug;
-      path_debug.header.stamp = node_->now();
-      path_debug.header.frame_id = global_frame_;
-      for (size_t i = 0; i < path.size(); i++)
+      switch (alogrithm_)
       {
-        path_debug.poses.push_back(tuw_graph::to_msg(tf_graph_2_map * path[i]->pose));
-        ss << path[i]->id << (i < path.size() - 1 ? " > " : "");
+      case tuw_graph::SearchAlgorithm::AStar:
+        search_algorithm_ = std::make_shared<tuw_graph::SearchAStart>(graph_);
+        break;
+      case tuw_graph::SearchAlgorithm::DijkStar:
+        search_algorithm_ = std::make_shared<tuw_graph::SearchDijkStar>(graph_);
+        break;
+      default:
+        RCLCPP_WARN(node_->get_logger(), "Unkown search algorithm, using DijkStar");
+        search_algorithm_ = std::make_shared<tuw_graph::SearchDijkStar>(graph_);
       }
-      pub_path_debug_->publish(path_debug);
-      RCLCPP_INFO(node_->get_logger(), "nodes: %s", ss.str().c_str());
     }
-
-    if (!path.empty())
+    else
     {
-      global_path.poses.clear();
-      global_path.header.stamp = node_->now();
-      global_path.header.frame_id = global_frame_;
+      search_algorithm_->reset();
+    }
+    RCLCPP_INFO(node_->get_logger(), "Using: %s", search_algorithm_->info().c_str());
 
-      geometry_msgs::msg::PoseStamped pose;
-      pose.header.stamp = node_->now();
-      pose.header.frame_id = global_frame_;
+    std::vector<tuw_graph::Node *> node_path;
+    node_path = search_algorithm_->start_processing(node_start, node_goal, false);
+    std::reverse(node_path.begin(), node_path.end());
 
-      // Insert a pose shortly before the start pose
-      const double next_waypoint_distance = 0.0;
-      Eigen::Vector3d next_pose;
+    debug_publish_node_path(node_path);
 
-      if (path.size() >= 2) {
-        tuw_graph::Node *next = path[1];
-        next_pose = tf_graph_2_map * next->pose.translation();
-      } else {
-        tuw_graph::Node *next = path[0];
-        next_pose = tf_graph_2_map * next->pose.translation();
-      }
-
-      double distance = (next_pose - start_map).norm();
-
-      if (distance > next_waypoint_distance)
-      {
-        Eigen::Vector3d next_waypoint = start_map + next_waypoint_distance * (next_pose - start_map).normalized();
-        pose.pose.position.x = next_waypoint.x();
-        pose.pose.position.y = next_waypoint.y();
-        pose.pose.position.z = 0.0;
-        pose.pose.orientation.x = 0.0;
-        pose.pose.orientation.y = 0.0;
-        pose.pose.orientation.z = 0.0;
-        pose.pose.orientation.w = 1.0;
-        global_path.poses.push_back(pose);
-      }   
-
-      for (size_t i = 1; i < path.size(); i++)
-      {
-        tuw_graph::Node *node = path[i];
-        Eigen::Vector3d node_map = tf_graph_2_map * node->pose.translation();
-        pose.pose.position.x = node_map.x();
-        pose.pose.position.y = node_map.y();
-        pose.pose.position.z = 0.0;
-        global_path.poses.push_back(pose);
-      }
+    if (!node_path.empty())
+    {
+      convert_path(node_path, global_path);
     }
     else
     {
@@ -161,6 +164,11 @@ namespace tuw_planner_graph
 
     return global_path;
   }
+
+  /**
+   * Planning request by the NAV2
+   * Starts search only if a graph was allready received
+   */
   nav_msgs::msg::Path GraphPlanner::createPlan(
       const geometry_msgs::msg::PoseStamped &start,
       const geometry_msgs::msg::PoseStamped &goal)
@@ -174,8 +182,10 @@ namespace tuw_planner_graph
 
     if (msg_graph_)
     {
-
-      plan_graph_astar(start, goal, global_path);
+      // compute translation from map to graph and back
+      tf_map_2_graph_ = graph_->origin().inverse();
+      tf_graph_2_map_ = graph_->origin();
+      start_graph_serach(start, goal, global_path);
     }
     else
     {
@@ -186,18 +196,28 @@ namespace tuw_planner_graph
     return global_path;
   }
 
+  /**
+   * Callback on graph messages
+   * only updates the graph on changes
+   */
   void GraphPlanner::callback_graph(const tuw_graph_msgs::msg::Graph::SharedPtr msg)
   {
-    msg_graph_ = std::make_shared<tuw_graph_msgs::msg::Graph>();
-    *msg_graph_ = *msg;
-
-    std::shared_ptr<tuw_graph::Graph> graph = std::make_shared<tuw_graph::Graph>();
-    tuw_graph::from_msg(*msg_graph_, *graph);
-
-    graph_ = graph;
-
     RCLCPP_INFO(
-        node_->get_logger(), "Graph received %zu edges %zu nodes", msg_graph_->edges.size(), msg_graph_->nodes.size());
+        node_->get_logger(),
+        "Graph received %zu edges %zu nodes",
+        msg->edges.size(), msg->nodes.size());
+
+    /// The graph should be only updated on changes
+    if (!msg_graph_ || (*msg_graph_ != *msg))
+    {
+      msg_graph_ = std::make_shared<tuw_graph_msgs::msg::Graph>();
+      *msg_graph_ = *msg;
+
+      std::shared_ptr<tuw_graph::Graph> graph = std::make_shared<tuw_graph::Graph>();
+      tuw_graph::from_msg(*msg_graph_, *graph);
+      graph_ = graph;
+      RCLCPP_INFO(node_->get_logger(), "Graph updated!");
+    }
   }
 
 } // namespace tuw_planner_graph

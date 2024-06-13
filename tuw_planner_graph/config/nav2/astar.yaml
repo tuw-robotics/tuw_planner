@@ -4,6 +4,7 @@ planner_server:
     use_sim_time: True
     GridBased:
       plugin: "tuw_planner_graph/GraphPlanner"
+      algorithm: "dijkstar"
       interpolation_resolution: 0.1
 
 local_costmap:

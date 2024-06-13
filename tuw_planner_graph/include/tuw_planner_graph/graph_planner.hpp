@@ -19,6 +19,7 @@
 namespace tuw_planner_graph
 {
 
+
   class GraphPlanner : public nav2_core::GlobalPlanner
   {
   public:
@@ -46,13 +47,19 @@ namespace tuw_planner_graph
         const geometry_msgs::msg::PoseStamped &goal) override;
 
   private:
-    nav_msgs::msg::Path &plan_graph_astar(
+    nav_msgs::msg::Path &start_graph_serach(
         const geometry_msgs::msg::PoseStamped &start,
         const geometry_msgs::msg::PoseStamped &goal,
         nav_msgs::msg::Path &global_path);
 
+    // converts the path from the graph to the global path
+    void convert_path(const std::vector<tuw_graph::Node *>& graph_path, nav_msgs::msg::Path &global_path);
+
     // callback on graph msg
     void callback_graph(const tuw_graph_msgs::msg::Graph::SharedPtr msg);
+
+    // callback on graph msg
+    void debug_publish_node_path(const std::vector<tuw_graph::Node *> path);
 
     // Subscription on graph msg
     rclcpp::Subscription<tuw_graph_msgs::msg::Graph>::SharedPtr sub_graph_;
@@ -63,6 +70,8 @@ namespace tuw_planner_graph
     // Graph
     tuw_graph_msgs::msg::Graph::SharedPtr msg_graph_;
     tuw_graph::GraphPtr graph_;
+
+    std::shared_ptr<tuw_graph::Search> search_algorithm_;
 
     // TF buffer
     std::shared_ptr<tf2_ros::Buffer> tf_;
@@ -76,7 +85,13 @@ namespace tuw_planner_graph
     // The global frame of the costmap
     std::string global_frame_, name_;
 
-    double interpolation_resolution_;
+    // Transformation map to graph
+    Eigen::Transform<double, 3, Eigen::Affine> tf_map_2_graph_;
+
+    // Transformation graph to map
+    Eigen::Transform<double, 3, Eigen::Affine> tf_graph_2_map_;
+
+    tuw_graph::SearchAlgorithm alogrithm_;
   };
 
 } // namespace tuw_planner_graph
