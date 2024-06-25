@@ -17,6 +17,7 @@ find_package(std_msgs REQUIRED)
 find_package(tuw_geometry_msgs REQUIRED)
 find_package(tuw_graph_msgs REQUIRED)
 find_package(tuw_graph REQUIRED)
+find_package(tuw_eigen REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(nav2_util REQUIRED)
 find_package(nav2_msgs REQUIRED)
@@ -45,6 +46,7 @@ set(dependencies
   tuw_geometry_msgs
   tuw_graph_msgs
   tuw_graph
+  tuw_eigen
   visualization_msgs
   nav2_util
   nav2_msgs

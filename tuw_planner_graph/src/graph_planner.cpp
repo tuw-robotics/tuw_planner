@@ -4,6 +4,7 @@
 #include <tuw_graph_msgs/msg/graph.hpp>
 #include <tuw_graph/search_astar.hpp>
 #include <tuw_graph/search_dijkstar.hpp>
+#include "tuw_eigen/eigen.hpp"
 #include <tuw_graph/ros_bridge.hpp>
 #include "nav2_util/node_utils.hpp"
 
@@ -98,6 +99,19 @@ namespace tuw_planner_graph
     RCLCPP_INFO(node_->get_logger(), "nodes: %s", ss.str().c_str());
   }
 
+  nav_msgs::msg::Path &GraphPlanner::drive_on(
+      const geometry_msgs::msg::PoseStamped &start,
+      const geometry_msgs::msg::PoseStamped &goal,
+      nav_msgs::msg::Path &global_path)
+  {
+    // only modify path if it has at leas 3 nodes
+    if(global_path.poses.size() < 2) return global_path;
+    
+    
+    
+    return global_path;
+  }
+
   nav_msgs::msg::Path &GraphPlanner::start_graph_serach(
       const geometry_msgs::msg::PoseStamped &start,
       const geometry_msgs::msg::PoseStamped &goal,
@@ -162,6 +176,7 @@ namespace tuw_planner_graph
       tf2::convert(quaternion, global_path.poses[i].pose.orientation);
     }
 
+    drive_on(start, goal, global_path);
     return global_path;
   }
 
