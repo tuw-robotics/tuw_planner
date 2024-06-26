@@ -162,10 +162,6 @@ namespace tuw_planner_graph
     {
       RCLCPP_WARN(node_->get_logger(), "Path empty!!!.");
     }
-    geometry_msgs::msg::PoseStamped goal_pose = goal;
-    goal_pose.header.stamp = node_->now();
-    goal_pose.header.frame_id = global_frame_;
-    global_path.poses.push_back(std::move(goal_pose));
     for (size_t i = 0; i < global_path.poses.size() - 1; i++)
     {
       geometry_msgs::msg::Point p0 = global_path.poses[i].pose.position;

@@ -14,7 +14,6 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(std_msgs REQUIRED)
-find_package(tuw_geometry_msgs REQUIRED)
 find_package(tuw_graph_msgs REQUIRED)
 find_package(tuw_graph REQUIRED)
 find_package(tuw_eigen REQUIRED)
@@ -43,7 +42,6 @@ set(dependencies
   rclcpp_action
   rclcpp_lifecycle
   std_msgs
-  tuw_geometry_msgs
   tuw_graph_msgs
   tuw_graph
   tuw_eigen
