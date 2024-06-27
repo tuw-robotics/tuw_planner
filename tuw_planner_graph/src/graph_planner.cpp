@@ -31,6 +31,11 @@ namespace tuw_planner_graph
         node_, name_ + ".algorithm", rclcpp::ParameterValue("astar"));
     node_->get_parameter(name_ + ".algorithm", name_algorithm);
     alogrithm_ = tuw_graph::Search::name_to_algorithm(name_algorithm);
+
+    // Parameter initialization
+    nav2_util::declare_parameter_if_not_declared(
+        node_, name_ + ".drive_on_step_size_", rclcpp::ParameterValue(0.2));
+    node_->get_parameter(name_ + ".drive_on_step_size_", drive_on_step_size_);
   }
 
   void GraphPlanner::cleanup()
@@ -99,17 +104,68 @@ namespace tuw_planner_graph
     RCLCPP_INFO(node_->get_logger(), "nodes: %s", ss.str().c_str());
   }
 
+  nav_msgs::msg::Path &GraphPlanner::compute_orientation(
+      nav_msgs::msg::Path &path)
+  {
+    if (path.poses.size() < 2) return path;
+
+    tuw_eigen::Pose3D pose;
+    tuw_eigen::Point3D position;
+    tuw_eigen::Point3D point_ahead;
+    for(size_t i = 0; i < path.poses.size()-1; i++){
+      position.copy_from(path.poses[i].pose.position);
+      point_ahead.copy_from(path.poses[i+1].pose.position);
+      pose.set(position, point_ahead);
+      pose.copy_to(path.poses[i].pose);
+    }
+    return path;
+  }
+
   nav_msgs::msg::Path &GraphPlanner::drive_on(
       const geometry_msgs::msg::PoseStamped &start,
       const geometry_msgs::msg::PoseStamped &goal,
       nav_msgs::msg::Path &global_path)
   {
     // only modify path if it has at leas 3 nodes
-    if(global_path.poses.size() < 2) return global_path;
+    if (global_path.poses.size() < 2)
+      return global_path;
+    nav_msgs::msg::Path old_path = global_path;
+    global_path.poses.clear();
+    tuw_eigen::Point2D p0(old_path.poses[0].pose.position);
+    tuw_eigen::Point2D p1(old_path.poses[1].pose.position);
+    tuw_eigen::Point2D pr(start.pose.position);
+    tuw_eigen::Line2D l(p0, p1);
+    tuw_eigen::Point2D pi = l.pointOnLine(pr);
+    tuw_eigen::LineSegment2D ls(pi, p1);
+    Eigen::Vector2d v = ls.direction();
+
+    int total_number_of_loop = ls.length() / drive_on_step_size_;
+
+    geometry_msgs::msg::PoseStamped pose;
+    pose.header = old_path.poses[0].header;
+    pose.pose.position.x = 0.0;
+    pose.pose.position.y = 0.0;
+    pose.pose.position.z = 0.0;
+    pose.pose.orientation.x = 0.0;
+    pose.pose.orientation.y = 0.0;
+    pose.pose.orientation.z = 0.0;
+    pose.pose.orientation.w = 1.0;
+
+    for (int i = 1; i < total_number_of_loop; ++i)
+    {
+      tuw_eigen::Point2D p = pi + v * drive_on_step_size_ * i;
+      p.copy_to_clear(pose.pose.position);
+
+      global_path.poses.push_back(pose);
+    }
+
+    for (int i = 1; i < old_path.poses.size(); ++i){
+      global_path.poses.push_back(old_path.poses[i]);
+    }
+
+
     
-    
-    
-    return global_path;
+    return compute_orientation(global_path);
   }
 
   nav_msgs::msg::Path &GraphPlanner::start_graph_serach(

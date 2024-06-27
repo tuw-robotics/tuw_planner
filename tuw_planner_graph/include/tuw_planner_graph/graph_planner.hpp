@@ -57,6 +57,9 @@ namespace tuw_planner_graph
       const geometry_msgs::msg::PoseStamped &goal,
       nav_msgs::msg::Path &global_path);
       
+  nav_msgs::msg::Path &compute_orientation(
+      nav_msgs::msg::Path &global_path);
+      
     // converts the path from the graph to the global path
     void convert_path(const std::vector<tuw_graph::Node *>& graph_path, nav_msgs::msg::Path &global_path);
 
@@ -97,6 +100,10 @@ namespace tuw_planner_graph
     Eigen::Transform<double, 3, Eigen::Affine> tf_graph_2_map_;
 
     tuw_graph::SearchAlgorithm alogrithm_;
+
+
+    // offset and step size to the first waypoint
+    double drive_on_step_size_;
   };
 
 } // namespace tuw_planner_graph
