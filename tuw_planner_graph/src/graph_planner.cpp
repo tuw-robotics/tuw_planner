@@ -124,25 +124,25 @@ namespace tuw_planner_graph
   nav_msgs::msg::Path &GraphPlanner::drive_on(
       const geometry_msgs::msg::PoseStamped &start,
       const geometry_msgs::msg::PoseStamped &goal,
-      nav_msgs::msg::Path &global_path)
+      nav_msgs::msg::Path &path)
   {
     // only modify path if it has at leas 3 nodes
-    if (global_path.poses.size() < 2)
-      return global_path;
-    nav_msgs::msg::Path old_path = global_path;
-    global_path.poses.clear();
-    tuw_eigen::Point2D p0(old_path.poses[0].pose.position);
-    tuw_eigen::Point2D p1(old_path.poses[1].pose.position);
+    if (path.poses.size() < 2)
+      return path;
+    tuw_eigen::Point2D p0(path.poses[0].pose.position);
+    tuw_eigen::Point2D p1(path.poses[1].pose.position);
     tuw_eigen::Point2D pr(start.pose.position);
     tuw_eigen::Line2D l(p0, p1);
     tuw_eigen::Point2D pi = l.pointOnLine(pr);
     tuw_eigen::LineSegment2D ls(pi, p1);
     Eigen::Vector2d v = ls.direction();
 
+
+
     int total_number_of_loop = ls.length() / drive_on_step_size_;
 
     geometry_msgs::msg::PoseStamped pose;
-    pose.header = old_path.poses[0].header;
+    pose.header = path.poses[0].header;
     pose.pose.position.x = 0.0;
     pose.pose.position.y = 0.0;
     pose.pose.position.z = 0.0;
@@ -151,21 +151,19 @@ namespace tuw_planner_graph
     pose.pose.orientation.z = 0.0;
     pose.pose.orientation.w = 1.0;
 
+    path.poses.erase(path.poses.begin());
+    std::vector<geometry_msgs::msg::PoseStamped> path_on;
+
     for (int i = 1; i < total_number_of_loop; ++i)
     {
       tuw_eigen::Point2D p = pi + v * drive_on_step_size_ * i;
       p.copy_to_clear(pose.pose.position);
-
-      global_path.poses.push_back(pose);
+      path_on.push_back(pose);
     }
-
-    for (int i = 1; i < old_path.poses.size(); ++i){
-      global_path.poses.push_back(old_path.poses[i]);
-    }
-
-
+    // Insert path_on at the beginning of path
+    path.poses.insert(path.poses.begin(), path_on.begin(), path_on.end());
     
-    return compute_orientation(global_path);
+    return compute_orientation(path);
   }
 
   nav_msgs::msg::Path &GraphPlanner::start_graph_serach(
