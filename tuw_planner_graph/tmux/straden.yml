@@ -2,11 +2,11 @@
 #set -g pane-border-format "#{pane_index} #{pane_title}"
 #set -g pane-border-status bottom
 
-name: pioneer3dx
+name: graph_planner
 #root: /home/markus/projects/tuw-ros
 
 windows:
-  - maps:
+  - robot:
       panes: 
         - stage: 
           - printf '\033]2;%s\033\\' 'stage'
@@ -20,24 +20,35 @@ windows:
         - rviz: 
           - printf '\033]2;%s\033\\' 'rviz'
           - ros2 launch tuw_nav2 rviz_launch.py use_sim_time:=true config:=nav2_graph
+  - maps:
+      panes: 
         - object_map_server: 
           - printf '\033]2;%s\033\\' 'object_map_server'
-          - ros2 run tuw_object_map_server object_map_server_node --ros-args  -p loop_rate:=0 -r objects:=object_map_server/objects -r get_objects:=object_map_server/get_objects -p object_map_json:=./ws02/src/tuw_greenhive/config/object_map/starden-2024-01-14.json
+          - ros2 run tuw_objects_server objects_server_node --ros-args  -p pub_interval:=0 -r objects:=objects_server/objects -r get_objects:=objects_server/get_objects -p objects_json:=./ws02/src/tuw_greenhive/config/object_map/starden-2024-01-14.json
         - object_map: 
           - printf '\033]2;%s\033\\' 'object_map'
           - sleep 1; ros2 lifecycle set /geo_map configure; sleep 1; ros2 lifecycle set /geo_map activate
-          - ros2 run tuw_object_map object_map_node --ros-args   -p loop_rate:=10 -p frame_map:=map -p publish_tf:=true -p map_border:=5.0 -r get_objects:=object_map_server/get_objects -r get_map:=map_server/map -r objects:=object_map_server/objects
+          - ros2 run tuw_object_map object_map_node --ros-args -p pub_interval:=10 -p publish_tf:=true -p map_border:=5.0 -r get_objects:=objects_server/get_objects -r get_map:=map_server/get_map  -r map:=map -r objects:=objects_server/objects
+        - geo_map: 
+          - printf '\033]2;%s\033\\' 'geo_map'
+          - ros2 run tuw_geo_map geo_map_node --ros-args -p pub_interval:=10 -p mapimage_folder:=./ws02/src/tuw_geo/tuw_geo_map/config/tuw_geo_map/straden/ -p publish_tf:=true -p frame_relative:=map
+  - graph:
+      panes: 
+        - graph_voronoi: 
+          - printf '\033]2;%s\033\\' 'graph_voronoi'
+          - ros2 run tuw_graph_generator graph_voronoi_node --ros-args -r get_map:=map_server/map
+        - graph_split: 
+          - printf '\033]2;%s\033\\' 'graph_split'
+          - ros2 run tuw_graph_generator graph_split_node --ros-args  -r graph_split:=graph_split -p threshold_ending:=1.5 -p scale_crossing:=2.0 -p threshold_cut:=1.0
+        - graph_vineyard: 
+          - printf '\033]2;%s\033\\' 'graph_vineyard'
+          - ros2 run tuw_graph_generator graph_vineyard_node --ros-args -r objects:=objects_on_map -r graph_vineyard:=graph
+  - nav:
+      panes: 
         - localization: 
           - printf '\033]2;%s\033\\' 'localization'
           - ros2 launch tuw_nav2 fake_localization_launch.py use_sim_time:=true init_pose_yaml:=init_pose_straden.yaml vehilce:=pioneer3dx
           #- ros2 launch tuw_nav2 localization_launch.py      use_sim_time:=true init_pose_yaml:=init_pose_straden.yaml vehilce:=pioneer3dx
-        - graph_voronoi: 
-          - printf '\033]2;%s\033\\' 'graph_voronoi'
-          - ros2 run tuw_graph_generator graph_voronoi_node --ros-args -r get_map:=map_server/map
-          #- sleep 5; ros2 run tuw_graph_voronoi graph_voronoi_node --ros-args -p map_topic:=map -p threshold_ending:=1.5 -p loop_rate:=5  -p loop_rate:=5 -p publish_path:=false
-        - graph_split: 
-          - printf '\033]2;%s\033\\' 'graph_split'
-          - ros2 run tuw_graph_generator graph_split_node --ros-args  -r graph_split:=graph
         - nav2-full: 
           - printf '\033]2;%s\033\\' 'nav2-full'
           #- read -p "start nav2"; ros2 launch tuw_nav2 nav2_minimal_launch.py
