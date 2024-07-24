@@ -27,11 +27,7 @@ windows:
           - ros2 run tuw_objects_server objects_server_node --ros-args  -p pub_interval:=0 -r objects:=objects_server/objects -r get_objects:=objects_server/get_objects -p objects_json:=./ws02/src/tuw_greenhive/config/object_map/starden-2024-01-14.json
         - object_map: 
           - printf '\033]2;%s\033\\' 'object_map'
-          - sleep 1; ros2 lifecycle set /geo_map configure; sleep 1; ros2 lifecycle set /geo_map activate
           - ros2 run tuw_object_map object_map_node --ros-args -p pub_interval:=10 -p publish_tf:=true -p map_border:=5.0 -r get_objects:=objects_server/get_objects -r get_map:=map_server/get_map  -r map:=map -r objects:=objects_server/objects
-        - geo_map: 
-          - printf '\033]2;%s\033\\' 'geo_map'
-          - ros2 run tuw_geo_map geo_map_node --ros-args -p pub_interval:=10 -p mapimage_folder:=./ws02/src/tuw_geo/tuw_geo_map/config/tuw_geo_map/straden/ -p publish_tf:=true -p frame_relative:=map
   - graph:
       panes: 
         - graph_voronoi: 
@@ -42,7 +38,10 @@ windows:
           - ros2 run tuw_graph_generator graph_split_node --ros-args  -r graph_split:=graph_split -p threshold_ending:=1.5 -p scale_crossing:=2.0 -p threshold_cut:=1.0
         - graph_vineyard: 
           - printf '\033]2;%s\033\\' 'graph_vineyard'
-          - ros2 run tuw_graph_generator graph_vineyard_node --ros-args -r objects:=objects_on_map -r graph_vineyard:=graph
+          - ros2 run tuw_graph_generator graph_vineyard_node --ros-args -r objects:=objects_on_map -r graph_vineyard:=graph_vineyard
+        - graph_freespace: 
+          - printf '\033]2;%s\033\\' 'graph_freespace'
+          - ros2 run tuw_graph_generator graph_freespace_node --ros-args -p pub_interval:=10 -p timeout_service_call:=10 -r graph:=graph_vineyard -r publish_graph:=publish_graph_vineyard
   - nav:
       panes: 
         - localization: 
@@ -57,4 +56,4 @@ windows:
           - ros2 launch tuw_nav2 nav2_minimal_launch.py planner_server_yaml:=empty controller_server_yaml:=controller_server_mppi.yaml
         - planner: 
           - printf '\033]2;%s\033\\' 'planner'
-          - ros2 run nav2_planner planner_server --ros-args --params-file ws02/src/tuw_planner/tuw_planner_graph/config/nav2/astar.yaml
+          - ros2 run nav2_planner planner_server --ros-args --params-file ws02/src/tuw_planner/tuw_planner_graph/config/nav2/astar.yaml  -r graph:=graph_vineyard
