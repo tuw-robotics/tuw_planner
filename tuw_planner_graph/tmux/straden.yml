@@ -56,4 +56,4 @@ windows:
           - ros2 launch tuw_nav2 nav2_minimal_launch.py planner_server_yaml:=empty controller_server_yaml:=controller_server_mppi.yaml
         - planner: 
           - printf '\033]2;%s\033\\' 'planner'
-          - ros2 run nav2_planner planner_server --ros-args --params-file ws02/src/tuw_planner/tuw_planner_graph/config/nav2/astar.yaml  -r graph:=graph_vineyard
+          - ros2 run nav2_planner planner_server --ros-args --params-file ws02/src/tuw_planner/tuw_planner_graph/config/nav2/astar.yaml
