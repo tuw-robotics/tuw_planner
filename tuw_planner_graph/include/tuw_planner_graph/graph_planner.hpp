@@ -47,9 +47,14 @@ namespace tuw_planner_graph
         const geometry_msgs::msg::PoseStamped &goal) override;
 
   private:
+  
+
     nav_msgs::msg::Path &start_graph_serach(
         const geometry_msgs::msg::PoseStamped &start,
         const geometry_msgs::msg::PoseStamped &goal,
+        nav_msgs::msg::Path &global_path);
+
+    nav_msgs::msg::Path &add_waypoints(
         nav_msgs::msg::Path &global_path);
 
   nav_msgs::msg::Path &drive_on(
