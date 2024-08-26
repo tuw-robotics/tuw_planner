@@ -136,34 +136,7 @@ namespace tuw_planner_graph
     tuw_eigen::Point2D pi = l.pointOnLine(pr);
     tuw_eigen::LineSegment2D ls(pi, p1);
     Eigen::Vector2d v = ls.direction();
-
-
-
-    int total_number_of_loop = ls.length() / drive_on_step_size_;
-
-    geometry_msgs::msg::PoseStamped pose;
-    pose.header = path.poses[0].header;
-    pose.pose.position.x = 0.0;
-    pose.pose.position.y = 0.0;
-    pose.pose.position.z = 0.0;
-    pose.pose.orientation.x = 0.0;
-    pose.pose.orientation.y = 0.0;
-    pose.pose.orientation.z = 0.0;
-    pose.pose.orientation.w = 1.0;
-
-    path.poses.erase(path.poses.begin());
-    std::vector<geometry_msgs::msg::PoseStamped> path_on;
-
-    for (int i = 1; i < total_number_of_loop; ++i)
-    {
-      tuw_eigen::Point2D p = pi + v * drive_on_step_size_ * i;
-      p.copy_to_clear(pose.pose.position);
-      path_on.push_back(pose);
-    }
-
-    // Insert path_on at the beginning of path
-    path.poses.insert(path.poses.begin(), path_on.begin(), path_on.end());
-    
+    pi.copy_to_clear(path.poses[0].pose.position);
     return compute_orientation(path);
   }
 
@@ -201,7 +174,6 @@ namespace tuw_planner_graph
     }
     auto goal = path.poses.back();
     path.poses = new_path;
-    compute_orientation(path);
     path.poses.push_back(goal);
     return path;
   }
@@ -267,7 +239,11 @@ namespace tuw_planner_graph
     }
 
     drive_on(start, goal, global_path);
+    //drive_off(start, goal, global_path);
+    //global_path.poses.push_back(goal);
     add_waypoints(global_path);
+    compute_orientation(global_path);
+    //global_path.poses.push_back(goal);
     return global_path;
   }
 

@@ -27,7 +27,7 @@ global_costmap:
         plugin: "nav2_costmap_freespace_plugin::FreespaceLayer"
         enabled: True
         map_topic: "/map_freespace"
-        lookup_table_update_rule: "allways"
+        lookup_table_update_rule: "once"
       inflation_layer:
         enabled: False
         plugin: "nav2_costmap_2d::InflationLayer"
