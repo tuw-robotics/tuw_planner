@@ -61,6 +61,12 @@ namespace tuw_planner_graph
       const geometry_msgs::msg::PoseStamped &start,
       const geometry_msgs::msg::PoseStamped &goal,
       nav_msgs::msg::Path &global_path);
+
+  nav_msgs::msg::Path &drive_off(
+      const geometry_msgs::msg::PoseStamped &start,
+      const geometry_msgs::msg::PoseStamped &goal,
+      nav_msgs::msg::Path &global_path);
+      
       
   nav_msgs::msg::Path &compute_orientation(
       nav_msgs::msg::Path &global_path);
