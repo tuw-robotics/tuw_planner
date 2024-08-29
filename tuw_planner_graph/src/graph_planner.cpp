@@ -133,8 +133,8 @@ namespace tuw_planner_graph
     tuw_eigen::Point2D p0(path.poses[0].pose.position);
     tuw_eigen::Point2D p1(path.poses[1].pose.position);
     tuw_eigen::Point2D pr(start.pose.position);
-    tuw_eigen::Line2D l(p0, p1);
-    tuw_eigen::Point2D pi = l.pointOnLine(pr);
+    tuw_eigen::LineSegment2D l(p0, p1);
+    tuw_eigen::Point2D pi = l.closestPointTo(pr);
     pi.copy_to_clear(path.poses[0].pose.position); /// replace frist waypoint
     return compute_orientation(path);
   }
@@ -151,8 +151,8 @@ namespace tuw_planner_graph
     tuw_eigen::Point2D p0(path.poses[n-1].pose.position);
     tuw_eigen::Point2D p1(path.poses[n-2].pose.position);
     tuw_eigen::Point2D pr(goal.pose.position);
-    tuw_eigen::Line2D l(p0, p1);
-    tuw_eigen::Point2D pi = l.pointOnLine(pr);
+    tuw_eigen::LineSegment2D l(p0, p1);
+    tuw_eigen::Point2D pi = l.closestPointTo(pr);
     pi.copy_to_clear(path.poses[n-1].pose.position); /// replace last waypoint
     path.poses.push_back(goal);                      /// add goal
     path.poses[n].header = path.header;              /// add header info

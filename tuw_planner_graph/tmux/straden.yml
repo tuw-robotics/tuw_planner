@@ -50,10 +50,13 @@ windows:
           #- ros2 launch tuw_nav2 localization_launch.py      use_sim_time:=true init_pose_yaml:=init_pose_straden.yaml vehilce:=pioneer3dx
         - nav2-empty: 
           - printf '\033]2;%s\033\\' 'nav2-empty'
-          - ros2 launch tuw_nav2 nav2_minimal_launch.py planner_server_yaml:=empty controller_server_yaml:=empty
+          - ros2 launch tuw_nav2 nav2_minimal_launch.py planner_server_yaml:=empty controller_server_yaml:=empty bt_navigator_yaml:=empty
         - nav2-controller_server: 
           - printf '\033]2;%s\033\\' 'controller'
           - ros2 run nav2_controller controller_server --ros-args --params-file ws02/src/tuw_planner/tuw_planner_graph/config/nav2/controller_mppi.yaml  -r graph:=graph_vineyard  -r map:=map_freespace
         - planner-planner_server: 
           - printf '\033]2;%s\033\\' 'planner'
           - ros2 run nav2_planner planner_server --ros-args --params-file ws02/src/tuw_planner/tuw_planner_graph/config/nav2/planner_graph.yaml  -r graph:=graph_vineyard  -r map:=map_freespace
+        - bt: 
+          - printf '\033]2;%s\033\\' 'bt'
+          - ros2 run nav2_bt_navigator bt_navigator --log-level DEBUG --ros-args --params-file ws02/src/tuw_nav2/config/nav2/pioneer3dx/v1/bt_navigator.yaml -p default_nav_through_poses_bt_xml:=ws02/src/tuw_nav2/config/nav2_bt_navigator/navigate_through_poses.xml -p default_nav_to_pose_bt_xml:=ws02/src/tuw_nav2/config/nav2_bt_navigator/navigate_to_pose.xml
