@@ -38,10 +38,10 @@ windows:
           - ros2 run tuw_graph_generator graph_split_node --ros-args  -r graph_split:=graph_split -p threshold_ending:=1.5 -p scale_crossing:=2.0 -p threshold_cut:=1.0
         - graph_vineyard: 
           - printf '\033]2;%s\033\\' 'graph_vineyard'
-          - ros2 run tuw_graph_generator graph_vineyard_node --ros-args -r objects:=objects_on_map -r graph_vineyard:=graph_vineyard
+          - ros2 run tuw_graph_generator graph_vineyard_node --ros-args -r objects:=objects_on_map -r graph_vineyard:=graph_vineyard -p hardbeat_flag:=200
         - graph_freespace: 
           - printf '\033]2;%s\033\\' 'graph_freespace'
-          - ros2 run tuw_graph_generator graph_freespace_node --ros-args -p pub_interval:=10 -p timeout_service_call:=10 -r graph:=graph_vineyard -r publish_graph:=publish_graph_vineyard
+          - ros2 run tuw_graph_generator graph_freespace_node --ros-args -p pub_interval:=10 -p timeout_service_call:=10 -r graph:=graph_vineyard -r publish_graph:=publish_graph_vineyard -p freespace_flag:=200
   - nav:
       panes: 
         - localization: 
